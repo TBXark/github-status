@@ -22,6 +22,7 @@ func main() {
 		stats.IgnoreForkedRepos(conf.IgnoreForkedRepos),
 		stats.IgnoreArchivedRepos(conf.IgnoreArchivedRepos),
 		stats.IgnorePrivateRepos(conf.IgnorePrivateRepos),
+		stats.IgnoreContributedToRepos(conf.IgnoreContributedToRepos),
 		stats.ExcludeRepos(conf.ExcludeRepos...),
 		stats.ExcludeLangs(conf.ExcludeLangs...),
 		stats.IncludeOwner(conf.IncludeOwner...),

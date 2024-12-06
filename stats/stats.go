@@ -44,6 +44,7 @@ type (
 		ignorePrivateRepos  bool
 		ignoreForkedRepos   bool
 		ignoreArchivedRepos bool
+		ignoreContributedTo bool
 
 		excludeRepos map[string]struct{}
 		excludeLangs map[string]struct{}
@@ -93,6 +94,12 @@ func IgnorePrivateRepos(flag bool) Option {
 	}
 }
 
+func IgnoreContributedToRepos(flag bool) Option {
+	return func(s *Loader) {
+		s.filter.ignoreContributedTo = flag
+	}
+}
+
 func ExcludeRepos(repos ...string) Option {
 	return func(s *Loader) {
 		for _, repo := range repos {
@@ -124,14 +131,13 @@ func (s *Loader) GetStats(ctx context.Context) (*Stats, error) {
 		Languages: make(map[string]*LanguageStats),
 		Repos:     make(map[string]*RepoStats),
 	}
-	var nextOwned, nextContrib string
 
 	var reqGroup sync.WaitGroup
 	var readGroup sync.WaitGroup
 
 	viewChan := make(chan int)
 	linesChan := make(chan [2]int)
-	semaphore := make(chan struct{}, 10)
+	semaphore := make(chan struct{}, 20)
 
 	readGroup.Add(2)
 	go func(r *Stats) {
@@ -147,37 +153,58 @@ func (s *Loader) GetStats(ctx context.Context) (*Stats, error) {
 			r.Deletions += lines[1]
 		}
 	}(stats)
-	for {
-		data, err := query.Query[query.ReposOverview](ctx, s.queries, query.BuildReposOverviewQuery(nextContrib, nextOwned))
+
+	var queries []func(ctx context.Context, after string) (*query.Repositories, error)
+
+	queries = append(queries, func(ctx context.Context, after string) (*query.Repositories, error) {
+		data, err := query.Query[query.ReposOverview](ctx, s.queries, query.BuildReposOverviewQuery(after))
 		if err != nil {
-			return nil, fmt.Errorf("query Repos overview: %w", err)
+			return nil, err
 		}
-		nodes := append(data.Repositories.Nodes, data.RepositoriesContributedTo.Nodes...)
-		for _, repo := range nodes {
-			if s.mergeRepoToStats(&repo, stats) == nil {
-				continue
+		return &data.Repositories, nil
+	})
+
+	if !s.filter.ignoreContributedTo {
+		queries = append(queries, func(ctx context.Context, after string) (*query.Repositories, error) {
+			data, err := query.Query[query.ReposContributedToOverview](ctx, s.queries, query.BuildRepositoriesContributedToQuery(after))
+			if err != nil {
+				return nil, err
 			}
-			reqGroup.Add(1)
-			go func(repo string) {
-				semaphore <- struct{}{}
-				defer func() {
-					<-semaphore
-					reqGroup.Done()
-				}()
-				if views, e := s.views(ctx, repo); e == nil {
-					viewChan <- views
+			return &data.RepositoriesContributedTo, nil
+		})
+	}
+
+	for _, q := range queries {
+		after := ""
+		for {
+			repositories, err := q(ctx, after)
+			if err != nil {
+				return nil, err
+			}
+			for _, repo := range repositories.Nodes {
+				if s.mergeRepoToStats(&repo, stats) == nil {
+					continue
 				}
-				if lines, e := s.linesChanged(ctx, repo); e == nil {
-					linesChan <- lines
-				}
-			}(repo.NameWithOwner)
+				reqGroup.Add(1)
+				go func(repo string) {
+					semaphore <- struct{}{}
+					defer func() {
+						<-semaphore
+						reqGroup.Done()
+					}()
+					if views, e := s.views(ctx, repo); e == nil {
+						viewChan <- views
+					}
+					if lines, e := s.linesChanged(ctx, repo); e == nil {
+						linesChan <- lines
+					}
+				}(repo.NameWithOwner)
+			}
+			if !repositories.PageInfo.HasNextPage {
+				break
+			}
+			after = repositories.PageInfo.EndCursor
 		}
-		if !data.Repositories.PageInfo.HasNextPage &&
-			!data.RepositoriesContributedTo.PageInfo.HasNextPage {
-			break
-		}
-		nextOwned = data.Repositories.PageInfo.EndCursor
-		nextContrib = data.RepositoriesContributedTo.PageInfo.EndCursor
 	}
 
 	var totalSize int

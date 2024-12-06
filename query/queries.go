@@ -96,18 +96,14 @@ func (q *Queries) requestRest(ctx context.Context, path string, params map[strin
 	return io.ReadAll(resp.Body)
 }
 
-func BuildReposOverviewQuery(contrib, owned string) string {
-	if contrib == "" {
-		contrib = "null"
+func BuildReposOverviewQuery(after string) string {
+	if after == "" {
+		after = "null"
 	} else {
-		contrib = fmt.Sprintf(`"%s"`, contrib)
+		after = fmt.Sprintf(`"%s"`, after)
 	}
-	if owned == "" {
-		owned = "null"
-	} else {
-		owned = fmt.Sprintf(`"%s"`, owned)
-	}
-	return fmt.Sprintf(`{
+	return fmt.Sprintf(`
+query {
   viewer {
     login,
     name,
@@ -144,6 +140,19 @@ func BuildReposOverviewQuery(contrib, owned string) string {
         }
       }
     }
+  }
+}`, after)
+}
+
+func BuildRepositoriesContributedToQuery(after string) string {
+	if after == "" {
+		after = "null"
+	} else {
+		after = fmt.Sprintf(`"%s"`, after)
+	}
+	return fmt.Sprintf(`
+query {
+  viewer {
     repositoriesContributedTo(
         first: 100,
         includeUserRepositories: false,
@@ -184,7 +193,7 @@ func BuildReposOverviewQuery(contrib, owned string) string {
       }
     }
   }
-}`, owned, contrib)
+}`, after)
 }
 
 func BuildContribYearsQuery() string {
@@ -301,9 +310,11 @@ type (
 		Nodes []Repository `json:"nodes"`
 	}
 	ReposOverview struct {
-		Login                     string       `json:"login"`
-		Name                      string       `json:"name"`
-		Repositories              Repositories `json:"repositories"`
+		Login        string       `json:"login"`
+		Name         string       `json:"name"`
+		Repositories Repositories `json:"repositories"`
+	}
+	ReposContributedToOverview struct {
 		RepositoriesContributedTo Repositories `json:"repositoriesContributedTo"`
 	}
 )

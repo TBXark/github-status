@@ -14,9 +14,10 @@ type Conf struct {
 	ExcludeLangs []string
 	IncludeOwner []string
 
-	IgnorePrivateRepos  bool
-	IgnoreForkedRepos   bool
-	IgnoreArchivedRepos bool
+	IgnorePrivateRepos       bool
+	IgnoreForkedRepos        bool
+	IgnoreArchivedRepos      bool
+	IgnoreContributedToRepos bool
 }
 
 func isGithubAccessTokenValid(accessToken string) bool {
@@ -55,6 +56,10 @@ func NewConf() *Conf {
 		return []string{}
 	}
 
+	boolFromEnv := func(key string) bool {
+		return os.Getenv(key) == "true"
+	}
+
 	conf := &Conf{
 		UserName:    userName,
 		AccessToken: accessToken,
@@ -63,9 +68,10 @@ func NewConf() *Conf {
 		ExcludeLangs: stringSliceFromEnv("EXCLUDE_LANGS"),
 		IncludeOwner: stringSliceFromEnv("INCLUDE_OWNER"),
 
-		IgnorePrivateRepos:  os.Getenv("IGNORE_PRIVATE_REPOS") == "true",
-		IgnoreForkedRepos:   os.Getenv("IGNORE_FORKED_REPOS") == "true",
-		IgnoreArchivedRepos: os.Getenv("IGNORE_ARCHIVED_REPOS") == "true",
+		IgnorePrivateRepos:       boolFromEnv("IGNORE_PRIVATE_REPOS"),
+		IgnoreForkedRepos:        boolFromEnv("IGNORE_FORKED_REPOS"),
+		IgnoreArchivedRepos:      boolFromEnv("IGNORE_ARCHIVED_REPOS"),
+		IgnoreContributedToRepos: boolFromEnv("IGNORE_CONTRIBUTED_TO_REPOS"),
 	}
 
 	if len(conf.IncludeOwner) == 0 {
