@@ -1,12 +1,12 @@
 package config
 
 import (
-	"net/http"
 	"os"
 	"strings"
 )
 
-type Conf struct {
+type Config struct {
+	Login       string
 	UserName    string
 	AccessToken string
 
@@ -18,29 +18,13 @@ type Conf struct {
 	IgnoreForkedRepos        bool
 	IgnoreArchivedRepos      bool
 	IgnoreContributedToRepos bool
+
+	WebhookURL string
 }
 
-func isGithubAccessTokenValid(accessToken string) bool {
-	if accessToken == "" {
-		return false
-	}
-	req, err := http.NewRequest("GET", "https://api.github.com/user", nil)
-	if err != nil {
-		return false
-	}
-	req.Header.Set("Authorization", "Bearer "+accessToken)
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return false
-	}
-	defer resp.Body.Close()
-	return resp.StatusCode == http.StatusOK
-}
-
-func NewConf() *Conf {
+func NewConfig(tokenValidate func(token string) bool) *Config {
 	accessToken := os.Getenv("ACCESS_TOKEN")
-	if !isGithubAccessTokenValid(accessToken) {
+	if !tokenValidate(accessToken) {
 		accessToken = os.Getenv("GITHUB_TOKEN")
 	}
 
@@ -60,7 +44,7 @@ func NewConf() *Conf {
 		return os.Getenv(key) == "true"
 	}
 
-	conf := &Conf{
+	conf := &Config{
 		UserName:    userName,
 		AccessToken: accessToken,
 
@@ -72,6 +56,8 @@ func NewConf() *Conf {
 		IgnoreForkedRepos:        boolFromEnv("IGNORE_FORKED_REPOS"),
 		IgnoreArchivedRepos:      boolFromEnv("IGNORE_ARCHIVED_REPOS"),
 		IgnoreContributedToRepos: boolFromEnv("IGNORE_CONTRIBUTED_TO_REPOS"),
+
+		WebhookURL: os.Getenv("WEBHOOK_URL"),
 	}
 
 	if len(conf.IncludeOwner) == 0 {

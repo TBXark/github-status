@@ -19,17 +19,26 @@ var (
 )
 
 type Queries struct {
-	username    string
 	accessToken string
 	client      *http.Client
 }
 
-func NewQueries(username, accessToken string) *Queries {
+func NewQueries(accessToken string) *Queries {
 	return &Queries{
-		username:    username,
 		accessToken: accessToken,
 		client:      &http.Client{},
 	}
+}
+
+func (q *Queries) IsValid() bool {
+	if q.accessToken == "" {
+		return false
+	}
+	_, err := q.requestRest(context.Background(), "user", nil)
+	if err != nil {
+		return false
+	}
+	return true
 }
 
 func (q *Queries) requestGraphql(ctx context.Context, query string) (json.RawMessage, error) {

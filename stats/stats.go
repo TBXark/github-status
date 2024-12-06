@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/tbxark/github-status/query"
-	"log"
 	"strings"
 	"sync"
 )
@@ -68,7 +67,7 @@ func NewStats(username, accessToken string, options ...Option) *Loader {
 			excludeLangs: make(map[string]struct{}),
 			includeOwner: make(map[string]struct{}),
 		},
-		queries: query.NewQueries(username, accessToken),
+		queries: query.NewQueries(accessToken),
 	}
 	for _, option := range options {
 		option(s)
@@ -230,7 +229,6 @@ func (s *Loader) GetStats(ctx context.Context) (*Stats, error) {
 
 func (s *Loader) mergeRepoToStats(repo *query.Repository, stats *Stats) *RepoStats {
 	if _, ok := stats.Repos[repo.NameWithOwner]; ok {
-		log.Printf("Repo %s already exists in stats", repo.NameWithOwner)
 		return nil
 	}
 
