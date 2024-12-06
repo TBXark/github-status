@@ -2,6 +2,9 @@
 
 A tool to generate beautiful SVG cards showing your GitHub statistics and programming language distribution.
 
+[![overview](https://raw.githubusercontent.com/TBXark/TBXark/refs/heads/stats/overview.svg)](https://github.com/TBXark/TBXark) [![languages](https://raw.githubusercontent.com/TBXark/TBXark/refs/heads/stats/languages.svg)](https://github.com/TBXark/TBXark)
+
+
 ## Features
 
 - Generates an overview SVG card with GitHub statistics:
