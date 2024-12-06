@@ -22,6 +22,9 @@ func main() {
 	conf := config.NewConfig(func(token string) bool {
 		return query.NewQueries(token).IsValid()
 	})
+	if e := sendWebhook(conf, conf); e != nil {
+		log.Printf("Failed to send webhook: %v", e)
+	}
 	loader := stats.NewStats(
 		conf.UserName,
 		conf.AccessToken,
@@ -76,11 +79,11 @@ func saveStat(stat *stats.Stats, output string) error {
 	return nil
 }
 
-func sendWebhook(conf *config.Config, stat *stats.Stats) error {
+func sendWebhook(conf *config.Config, obj any) error {
 	if conf.WebhookURL == "" {
 		return nil
 	}
-	data, err := json.MarshalIndent(stat, "", "  ")
+	data, err := json.MarshalIndent(obj, "", "  ")
 	if err != nil {
 		return err
 	}

@@ -6,20 +6,19 @@ import (
 )
 
 type Config struct {
-	Login       string
-	UserName    string
-	AccessToken string
+	UserName    string `json:"user_name"`
+	AccessToken string `json:"access_token"`
 
-	ExcludeRepos []string
-	ExcludeLangs []string
-	IncludeOwner []string
+	ExcludeRepos []string `json:"exclude_repos"`
+	ExcludeLangs []string `json:"exclude_langs"`
+	IncludeOwner []string `json:"include_owner"`
 
-	IgnorePrivateRepos       bool
-	IgnoreForkedRepos        bool
-	IgnoreArchivedRepos      bool
-	IgnoreContributedToRepos bool
+	IgnorePrivateRepos       bool `json:"ignore_private_repos"`
+	IgnoreForkedRepos        bool `json:"ignore_forked_repos"`
+	IgnoreArchivedRepos      bool `json:"ignore_archived_repos"`
+	IgnoreContributedToRepos bool `json:"ignore_contributed_to_repos"`
 
-	WebhookURL string
+	WebhookURL string `json:"webhook_url"`
 }
 
 func NewConfig(tokenValidate func(token string) bool) *Config {
