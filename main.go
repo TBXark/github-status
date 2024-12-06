@@ -22,8 +22,8 @@ func main() {
 	conf := config.NewConfig(func(token string) bool {
 		return query.NewQueries(token).IsValid()
 	})
-	if e := sendWebhook(conf, conf); e != nil {
-		log.Printf("Failed to send webhook: %v", e)
+	if conf == nil {
+		log.Fatalf("Invalid config")
 	}
 	loader := stats.NewStats(
 		conf.UserName,
@@ -40,7 +40,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to get stats: %v", err)
 	}
-
 	if e := saveStat(stat, *output); e != nil {
 		log.Printf("Failed to save stat: %v", e)
 	}

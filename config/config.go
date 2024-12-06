@@ -25,6 +25,9 @@ func NewConfig(tokenValidate func(token string) bool) *Config {
 	accessToken := os.Getenv("ACCESS_TOKEN")
 	if !tokenValidate(accessToken) {
 		accessToken = os.Getenv("GITHUB_TOKEN")
+		if !tokenValidate(accessToken) {
+			return nil
+		}
 	}
 
 	userName := os.Getenv("CUSTOM_ACTOR")
