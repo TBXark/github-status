@@ -22,7 +22,7 @@ A tool to generate beautiful SVG cards showing your GitHub statistics and progra
 ## Installation
 
 ```bash
-go install github.com/tbxark/github-status@latest
+go install github.com/TBXark/github-status@latest
 ```
 
 ## Usage

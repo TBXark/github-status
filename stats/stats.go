@@ -3,7 +3,7 @@ package stats
 import (
 	"context"
 	"fmt"
-	"github.com/tbxark/github-status/query"
+	"github.com/TBXark/github-status/query"
 	"strings"
 	"sync"
 )

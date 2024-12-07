@@ -2,7 +2,7 @@ package render
 
 import (
 	_ "embed"
-	"github.com/tbxark/github-status/stats"
+	"github.com/TBXark/github-status/stats"
 	"maps"
 	"os"
 	"slices"
