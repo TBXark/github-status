@@ -42,6 +42,8 @@ All configuration is done through environment variables. Here are all the availa
 | `IGNORE_REPO_VIEWS`             | bool     | Whether to ignore repository view counts              | `false`      |
 | `WEBHOOK_URL`                   | string   | URL for webhook notifications                         | `""`         |
 
+> **Note:** `GITHUB_TOKEN` is limited requests on GitHub API, so it is recommended to use a personal access token `ACCESS_TOKEN` with the `repo` scope.
+
 ## Best Practices
 
 Reference [My GitHub Action](https://github.com/TBXark/TBXark/blob/master/.github/workflows/update-status.yml)
