@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strings"
 	"text/template"
+	"time"
 )
 
 //go:embed templates/overview.gohtml
@@ -57,16 +58,17 @@ func OverviewSVG(data *stats.Stats) (SVGData, error) {
 		Name:  "Forks",
 		Value: fmt.Sprintf("%d", data.Forks),
 	})
-	input.Items = append(input.Items, OverviewItem{
-		Icon:  loadIcon("repo-push"),
-		Name:  "All-time contributions",
-		Value: fmt.Sprintf("%d", data.TotalContributions),
-	})
 	if data.LineChange != nil {
 		input.Items = append(input.Items, OverviewItem{
 			Icon:  loadIcon("diff"),
 			Name:  "Lines of code changed",
 			Value: fmt.Sprintf("%d", data.LineChange.Additions+data.LineChange.Deletions),
+		})
+	} else {
+		input.Items = append(input.Items, OverviewItem{
+			Icon:  loadIcon("git-commit"),
+			Name:  fmt.Sprintf("Total commits (%d)", time.Now().Year()),
+			Value: fmt.Sprintf("%d", data.Contributions.TotalCommitContributions),
 		})
 	}
 	if data.Views != nil {
@@ -75,8 +77,18 @@ func OverviewSVG(data *stats.Stats) (SVGData, error) {
 			Name:  "Repository views (past two weeks)",
 			Value: fmt.Sprintf("%d", data.Views.Count),
 		})
+	} else {
+		input.Items = append(input.Items, OverviewItem{
+			Icon:  loadIcon("git-pull-request"),
+			Name:  fmt.Sprintf("Total pull requests (%d)", time.Now().Year()),
+			Value: fmt.Sprintf("%d", data.Contributions.TotalPullRequestContributions),
+		})
 	}
-
+	input.Items = append(input.Items, OverviewItem{
+		Icon:  loadIcon("repo-push"),
+		Name:  "All-time contributions",
+		Value: fmt.Sprintf("%d", data.Contributions.TotalContributions),
+	})
 	input.Items = append(input.Items, OverviewItem{
 		Icon:  loadIcon("repo"),
 		Name:  "Repositories with contributions",

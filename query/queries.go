@@ -213,7 +213,7 @@ query {
 	return &data.RepositoriesContributedTo, nil
 }
 
-func (q *Queries) AllContribYears(ctx context.Context, login string) (AllContribYears, error) {
+func (q *Queries) ContributionsCollection(ctx context.Context, login string) (*ContributionsCollection, error) {
 	query := fmt.Sprintf(`
 query {
   user(login: "%s") {
@@ -226,12 +226,13 @@ query {
     }
   }
 }`, login)
-	years, err := sendQuery[ContributionsCollection](ctx, q, query)
-	if err != nil {
-		return nil, err
-	}
+	return sendQuery[ContributionsCollection](ctx, q, query)
+}
+
+func (q *Queries) AllContribYears(ctx context.Context, login string, years []int) (AllContribYears, error) {
+
 	var byYears string
-	for _, year := range years.ContributionsCollection.ContributionYears {
+	for _, year := range years {
 		byYears += fmt.Sprintf(`
     	year%d: contributionsCollection(from: "%d-01-01T00:00:00Z",to: "%d-01-01T00:00:00Z") {
     	  contributionCalendar {
@@ -239,7 +240,7 @@ query {
     	  }
     	}`, year, year, year+1)
 	}
-	query = fmt.Sprintf(`
+	query := fmt.Sprintf(`
 query {
   user(login: "%s") {
     %s

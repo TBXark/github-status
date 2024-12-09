@@ -18,6 +18,9 @@ type Config struct {
 	IgnoreArchivedRepos      bool `json:"ignore_archived_repos"`
 	IgnoreContributedToRepos bool `json:"ignore_contributed_to_repos"`
 
+	IgnoreLinesChanged bool `json:"ignore_lines_changed"`
+	IgnoreRepoViews    bool `json:"ignore_repo_views"`
+
 	WebhookURL string `json:"webhook_url"`
 }
 
@@ -58,6 +61,9 @@ func NewConfig(tokenValidate func(token string) bool) *Config {
 		IgnoreForkedRepos:        boolFromEnv("IGNORE_FORKED_REPOS"),
 		IgnoreArchivedRepos:      boolFromEnv("IGNORE_ARCHIVED_REPOS"),
 		IgnoreContributedToRepos: boolFromEnv("IGNORE_CONTRIBUTED_TO_REPOS"),
+
+		IgnoreLinesChanged: boolFromEnv("IGNORE_LINES_CHANGED"),
+		IgnoreRepoViews:    boolFromEnv("IGNORE_REPO_VIEWS"),
 
 		WebhookURL: os.Getenv("WEBHOOK_URL"),
 	}

@@ -16,14 +16,13 @@ type (
 		Languages map[string]*LanguageStats `json:"languages"`
 		Repos     map[string]*RepoStats     `json:"repos"`
 
-		TotalContributions int `json:"totalContributions"`
-
 		Contributions *ContributionsStats `json:"contributions"`
 		LineChange    *LineChangeStats    `json:"lineChange"`
 		Views         *ViewStats          `json:"views"`
 	}
 
 	ContributionsStats struct {
+		TotalContributions                  int `json:"totalContributions"`
 		TotalCommitContributions            int `json:"totalCommitContributions"`
 		TotalIssueContributions             int `json:"totalIssueContributions"`
 		TotalPullRequestContributions       int `json:"totalPullRequestContributions"`
@@ -115,6 +114,18 @@ func IgnorePrivateRepos(flag bool) Option {
 func IgnoreContributedToRepos(flag bool) Option {
 	return func(s *Loader) {
 		s.filter.ignoreContributedTo = flag
+	}
+}
+
+func IgnoreLinesChanged(flag bool) Option {
+	return func(s *Loader) {
+		s.filter.ignoreLinesChanged = flag
+	}
+}
+
+func IgnoreRepoViews(flag bool) Option {
+	return func(s *Loader) {
+		s.filter.ignoreRepoViews = flag
 	}
 }
 
@@ -234,7 +245,7 @@ func (s *Loader) GetStats(ctx context.Context) (*Stats, error) {
 	}
 
 	if totalContributions, e := s.totalContributions(ctx); e == nil {
-		stats.TotalContributions = totalContributions
+		stats.Contributions = totalContributions
 	}
 
 	reqGroup.Wait()
@@ -252,6 +263,7 @@ func (s *Loader) mergeRepoToStats(repo *query.Repository, stats *Stats) *RepoSta
 
 	owner := strings.Split(repo.NameWithOwner, "/")[0]
 	if _, ok := s.filter.includeOwner[strings.ToLower(owner)]; !ok {
+		stats.Repos[repo.NameWithOwner] = nil
 		return nil
 	}
 
@@ -299,16 +311,24 @@ func (s *Loader) mergeRepoToStats(repo *query.Repository, stats *Stats) *RepoSta
 	return repoStat
 }
 
-func (s *Loader) totalContributions(ctx context.Context) (int, error) {
-	allContrib, err := s.queries.AllContribYears(ctx, s.username)
+func (s *Loader) totalContributions(ctx context.Context) (*ContributionsStats, error) {
+	var stats ContributionsStats
+	con, err := s.queries.ContributionsCollection(ctx, s.username)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	total := 0
+	stats.TotalCommitContributions = con.ContributionsCollection.TotalCommitContributions
+	stats.TotalIssueContributions = con.ContributionsCollection.TotalIssueContributions
+	stats.TotalPullRequestContributions = con.ContributionsCollection.TotalPullRequestContributions
+	stats.TotalPullRequestReviewContributions = con.ContributionsCollection.TotalPullRequestReviewContributions
+	allContrib, err := s.queries.AllContribYears(ctx, s.username, con.ContributionsCollection.ContributionYears)
+	if err != nil {
+		return &stats, err
+	}
 	for _, year := range allContrib {
-		total += year.ContributionCalendar.TotalContributions
+		stats.TotalContributions += year.ContributionCalendar.TotalContributions
 	}
-	return total, nil
+	return &stats, nil
 }
 
 func (s *Loader) linesChanged(ctx context.Context, repo string) ([2]int, error) {

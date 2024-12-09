@@ -32,6 +32,8 @@ func main() {
 		stats.IgnoreArchivedRepos(conf.IgnoreArchivedRepos),
 		stats.IgnorePrivateRepos(conf.IgnorePrivateRepos),
 		stats.IgnoreContributedToRepos(conf.IgnoreContributedToRepos),
+		stats.IgnoreLinesChanged(conf.IgnoreLinesChanged),
+		stats.IgnoreRepoViews(conf.IgnoreRepoViews),
 		stats.ExcludeRepos(conf.ExcludeRepos...),
 		stats.ExcludeLangs(conf.ExcludeLangs...),
 		stats.IncludeOwner(conf.IncludeOwner...),
