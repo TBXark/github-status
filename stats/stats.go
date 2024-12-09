@@ -2,7 +2,6 @@ package stats
 
 import (
 	"context"
-	"fmt"
 	"github.com/TBXark/github-status/query"
 	"strings"
 	"sync"
@@ -18,9 +17,26 @@ type (
 		Repos     map[string]*RepoStats     `json:"repos"`
 
 		TotalContributions int `json:"totalContributions"`
-		Additions          int `json:"additions"`
-		Deletions          int `json:"deletions"`
-		Views              int `json:"views"`
+
+		Contributions *ContributionsStats `json:"contributions"`
+		LineChange    *LineChangeStats    `json:"lineChange"`
+		Views         *ViewStats          `json:"views"`
+	}
+
+	ContributionsStats struct {
+		TotalCommitContributions            int `json:"totalCommitContributions"`
+		TotalIssueContributions             int `json:"totalIssueContributions"`
+		TotalPullRequestContributions       int `json:"totalPullRequestContributions"`
+		TotalPullRequestReviewContributions int `json:"totalPullRequestReviewContributions"`
+	}
+
+	LineChangeStats struct {
+		Additions int `json:"additions"`
+		Deletions int `json:"deletions"`
+	}
+
+	ViewStats struct {
+		Count int `json:"count"`
 	}
 
 	LanguageStats struct {
@@ -44,6 +60,9 @@ type (
 		ignoreForkedRepos   bool
 		ignoreArchivedRepos bool
 		ignoreContributedTo bool
+
+		ignoreLinesChanged bool
+		ignoreRepoViews    bool
 
 		excludeRepos map[string]struct{}
 		excludeLangs map[string]struct{}
@@ -138,20 +157,28 @@ func (s *Loader) GetStats(ctx context.Context) (*Stats, error) {
 	linesChan := make(chan [2]int)
 	semaphore := make(chan struct{}, 20)
 
-	readGroup.Add(2)
-	go func(r *Stats) {
-		defer readGroup.Done()
-		for views := range viewChan {
-			r.Views += views
-		}
-	}(stats)
-	go func(r *Stats) {
-		defer readGroup.Done()
-		for lines := range linesChan {
-			r.Additions += lines[0]
-			r.Deletions += lines[1]
-		}
-	}(stats)
+	if !s.filter.ignoreRepoViews {
+		readGroup.Add(1)
+		stats.Views = &ViewStats{}
+		go func(r *Stats) {
+			defer readGroup.Done()
+			for views := range viewChan {
+				r.Views.Count += views
+			}
+		}(stats)
+	}
+
+	if !s.filter.ignoreLinesChanged {
+		readGroup.Add(1)
+		stats.LineChange = &LineChangeStats{}
+		go func(r *Stats) {
+			defer readGroup.Done()
+			for lines := range linesChan {
+				r.LineChange.Additions += lines[0]
+				r.LineChange.Deletions += lines[1]
+			}
+		}(stats)
+	}
 
 	var queries []func(ctx context.Context, login, after string) (*query.RepositoriesPage, error)
 
@@ -178,11 +205,15 @@ func (s *Loader) GetStats(ctx context.Context) (*Stats, error) {
 						<-semaphore
 						reqGroup.Done()
 					}()
-					if views, e := s.views(ctx, repo); e == nil {
-						viewChan <- views
+					if !s.filter.ignoreRepoViews {
+						if views, e := s.views(ctx, repo); e == nil {
+							viewChan <- views
+						}
 					}
-					if lines, e := s.linesChanged(ctx, repo); e == nil {
-						linesChan <- lines
+					if !s.filter.ignoreLinesChanged {
+						if lines, e := s.linesChanged(ctx, repo); e == nil {
+							linesChan <- lines
+						}
 					}
 				}(repo.NameWithOwner)
 			}
@@ -309,16 +340,4 @@ func (s *Loader) views(ctx context.Context, repo string) (int, error) {
 		total += view.Count
 	}
 	return total, nil
-}
-
-func (r Stats) LinesChanged() int {
-	return r.Additions + r.Deletions
-}
-
-func (r Stats) ReposCount() int {
-	return len(r.Repos)
-}
-
-func (l LanguageStats) Percent() string {
-	return fmt.Sprintf("%.3f%%", l.Proportion)
 }

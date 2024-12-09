@@ -98,7 +98,7 @@
                     <div>
                         <span class="progress">
                             {{range .}}
-                                <span style="background-color:{{.Color}}; width:{{.Percent}};" class="progress-item"/>
+                                <span style="background-color:{{.Color}}; width:{{Percent .Proportion}};" class="progress-item"/>
                             {{end}}
                         </span>
                     </div>
@@ -110,7 +110,7 @@
                                     <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8z"></path>
                                 </svg>
                                 <span class="lang">{{.Name}}</span>
-                                <span class="percent">{{.Percent}}</span>
+                                <span class="percent">{{Percent .Proportion}}</span>
                             </li>
                         {{end}}
                     </ul>

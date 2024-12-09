@@ -149,7 +149,7 @@ query {
     }
   }
 }`, login, after)
-	data, err := Query[Repositories](ctx, q, query)
+	data, err := sendQuery[Repositories](ctx, q, query)
 	if err != nil {
 		return nil, err
 	}
@@ -206,7 +206,7 @@ query {
     }
   }
 }`, login, after)
-	data, err := Query[RepositoriesContributedTo](ctx, q, query)
+	data, err := sendQuery[RepositoriesContributedTo](ctx, q, query)
 	if err != nil {
 		return nil, err
 	}
@@ -219,20 +219,21 @@ query {
   user(login: "%s") {
     contributionsCollection {
       contributionYears
+      totalCommitContributions
+      totalIssueContributions
+      totalPullRequestContributions
+      totalPullRequestReviewContributions
     }
   }
 }`, login)
-	years, err := Query[ContribYears](ctx, q, query)
+	years, err := sendQuery[ContributionsCollection](ctx, q, query)
 	if err != nil {
 		return nil, err
 	}
 	var byYears string
 	for _, year := range years.ContributionsCollection.ContributionYears {
 		byYears += fmt.Sprintf(`
-    	year%d: contributionsCollection(
-    	    from: "%d-01-01T00:00:00Z",
-    	    to: "%d-01-01T00:00:00Z"
-    	) {
+    	year%d: contributionsCollection(from: "%d-01-01T00:00:00Z",to: "%d-01-01T00:00:00Z") {
     	  contributionCalendar {
     	    totalContributions
     	  }
@@ -244,7 +245,7 @@ query {
     %s
   }
 }`, login, byYears)
-	data, err := Query[AllContribYears](ctx, q, query)
+	data, err := sendQuery[AllContribYears](ctx, q, query)
 	if err != nil {
 		return nil, err
 	}
@@ -252,14 +253,14 @@ query {
 }
 
 func (q *Queries) RepoTraffic(ctx context.Context, repo string) (*RepoTraffic, error) {
-	return Request[RepoTraffic](ctx, q, fmt.Sprintf("/repos/%s/traffic/views", repo), nil)
+	return sendRequest[RepoTraffic](ctx, q, fmt.Sprintf("/repos/%s/traffic/views", repo), nil)
 }
 
 func (q *Queries) RepoContributors(ctx context.Context, repo string) (*[]RepoContributor, error) {
-	return Request[[]RepoContributor](ctx, q, fmt.Sprintf("/repos/%s/stats/contributors", repo), nil)
+	return sendRequest[[]RepoContributor](ctx, q, fmt.Sprintf("/repos/%s/stats/contributors", repo), nil)
 }
 
-func Query[T any](ctx context.Context, client *Queries, query string) (*T, error) {
+func sendQuery[T any](ctx context.Context, client *Queries, query string) (*T, error) {
 	data, err := client.requestGraphql(ctx, query)
 	if err != nil {
 		return nil, err
@@ -274,7 +275,7 @@ func Query[T any](ctx context.Context, client *Queries, query string) (*T, error
 	return &result.User, nil
 }
 
-func Request[T any](ctx context.Context, client *Queries, path string, params map[string]string) (*T, error) {
+func sendRequest[T any](ctx context.Context, client *Queries, path string, params map[string]string) (*T, error) {
 	var maxTries = 60
 	for i := 0; i < maxTries; i++ {
 		data, err := client.requestRest(ctx, path, params)
@@ -349,9 +350,13 @@ type (
 )
 
 type (
-	ContribYears struct {
+	ContributionsCollection struct {
 		ContributionsCollection struct {
-			ContributionYears []int `json:"contributionYears"`
+			ContributionYears                   []int `json:"contributionYears"`
+			TotalCommitContributions            int   `json:"totalCommitContributions"`
+			TotalIssueContributions             int   `json:"totalIssueContributions"`
+			TotalPullRequestContributions       int   `json:"totalPullRequestContributions"`
+			TotalPullRequestReviewContributions int   `json:"totalPullRequestReviewContributions"`
 		} `json:"contributionsCollection"`
 	}
 	ContributionCalendar struct {
