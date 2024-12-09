@@ -227,11 +227,11 @@ query {
 }
 
 func (q *Queries) RepoTraffic(ctx context.Context, repo string) (*RepoTraffic, error) {
-	return sendRequest[RepoTraffic](ctx, q, fmt.Sprintf("/repos/%s/traffic/views", repo), nil)
+	return sendRequest[RepoTraffic](ctx, q, fmt.Sprintf("/repos/%s/traffic/views", repo), 1, nil)
 }
 
 func (q *Queries) RepoContributors(ctx context.Context, repo string) (*[]RepoContributor, error) {
-	return sendRequest[[]RepoContributor](ctx, q, fmt.Sprintf("/repos/%s/stats/contributors", repo), nil)
+	return sendRequest[[]RepoContributor](ctx, q, fmt.Sprintf("/repos/%s/stats/contributors", repo), 60, nil)
 }
 
 func sendQuery[T any](ctx context.Context, client *Queries, query string) (*T, error) {
@@ -249,18 +249,17 @@ func sendQuery[T any](ctx context.Context, client *Queries, query string) (*T, e
 	return &result.User, nil
 }
 
-func sendRequest[T any](ctx context.Context, client *Queries, path string, params map[string]string) (*T, error) {
-	var maxTries = 60
+func sendRequest[T any](ctx context.Context, client *Queries, path string, maxTries int, params map[string]string) (*T, error) {
 	for i := 0; i < maxTries; i++ {
 		data, err := client.requestRest(ctx, path, params)
 		if errors.Is(err, ErrAcceptButNotReady) {
-			log.Printf("Request accepted but not ready, retrying in 2 second")
-			time.Sleep(time.Second * 2)
+			log.Printf("Request accepted but not ready, retrying in 1 second")
+			time.Sleep(time.Second * 1)
 			continue
 		}
 		if errors.Is(err, ErrTooManyRequests) {
-			log.Printf("Too many requests, retrying in 5 second")
-			time.Sleep(time.Second * 5)
+			log.Printf("Too many requests, retrying in 2 second")
+			time.Sleep(time.Second * 2)
 			continue
 		}
 		if err != nil {

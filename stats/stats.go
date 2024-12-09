@@ -166,7 +166,7 @@ func (s *Loader) GetStats(ctx context.Context) (*Stats, error) {
 
 	viewChan := make(chan int)
 	linesChan := make(chan [2]int)
-	semaphore := make(chan struct{}, 20)
+	semaphore := make(chan struct{}, 60)
 
 	if !s.filter.ignoreRepoViews {
 		readGroup.Add(1)
