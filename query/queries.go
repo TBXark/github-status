@@ -105,13 +105,13 @@ func (q *Queries) requestRest(ctx context.Context, path string, params map[strin
 	return io.ReadAll(resp.Body)
 }
 
-func BuildReposOverviewQuery(login, after string) string {
+func (q *Queries) Repositories(ctx context.Context, login, after string) (*RepositoriesPage, error) {
 	if after == "" {
 		after = "null"
 	} else {
 		after = fmt.Sprintf(`"%s"`, after)
 	}
-	return fmt.Sprintf(`
+	query := fmt.Sprintf(`
 query {
   user(login: "%s") {
     repositories(
@@ -149,15 +149,20 @@ query {
     }
   }
 }`, login, after)
+	data, err := Query[Repositories](ctx, q, query)
+	if err != nil {
+		return nil, err
+	}
+	return &data.Repositories, nil
 }
 
-func BuildRepositoriesContributedToQuery(login, after string) string {
+func (q *Queries) RepositoriesContributedTo(ctx context.Context, login, after string) (*RepositoriesPage, error) {
 	if after == "" {
 		after = "null"
 	} else {
 		after = fmt.Sprintf(`"%s"`, after)
 	}
-	return fmt.Sprintf(`
+	query := fmt.Sprintf(`
 query {
   user(login: "%s") {
     repositoriesContributedTo(
@@ -201,10 +206,15 @@ query {
     }
   }
 }`, login, after)
+	data, err := Query[RepositoriesContributedTo](ctx, q, query)
+	if err != nil {
+		return nil, err
+	}
+	return &data.RepositoriesContributedTo, nil
 }
 
-func BuildContribYearsQuery(login string) string {
-	return fmt.Sprintf(`
+func (q *Queries) AllContribYears(ctx context.Context, login string) (AllContribYears, error) {
+	query := fmt.Sprintf(`
 query {
   user(login: "%s") {
     contributionsCollection {
@@ -212,11 +222,12 @@ query {
     }
   }
 }`, login)
-}
-
-func BuildAllContribQuery(login string, years []int) string {
+	years, err := Query[ContribYears](ctx, q, query)
+	if err != nil {
+		return nil, err
+	}
 	var byYears string
-	for _, year := range years {
+	for _, year := range years.ContributionsCollection.ContributionYears {
 		byYears += fmt.Sprintf(`
     	year%d: contributionsCollection(
     	    from: "%d-01-01T00:00:00Z",
@@ -227,12 +238,25 @@ func BuildAllContribQuery(login string, years []int) string {
     	  }
     	}`, year, year, year+1)
 	}
-	return fmt.Sprintf(`
+	query = fmt.Sprintf(`
 query {
   user(login: "%s") {
     %s
   }
 }`, login, byYears)
+	data, err := Query[AllContribYears](ctx, q, query)
+	if err != nil {
+		return nil, err
+	}
+	return *data, nil
+}
+
+func (q *Queries) RepoTraffic(ctx context.Context, repo string) (*RepoTraffic, error) {
+	return Request[RepoTraffic](ctx, q, fmt.Sprintf("/repos/%s/traffic/views", repo), nil)
+}
+
+func (q *Queries) RepoContributors(ctx context.Context, repo string) (*[]RepoContributor, error) {
+	return Request[[]RepoContributor](ctx, q, fmt.Sprintf("/repos/%s/stats/contributors", repo), nil)
 }
 
 func Query[T any](ctx context.Context, client *Queries, query string) (*T, error) {
@@ -309,18 +333,18 @@ type (
 			} `json:"edges"`
 		} `json:"languages"`
 	}
-	Repositories struct {
+	RepositoriesPage struct {
 		PageInfo struct {
 			HasNextPage bool   `json:"hasNextPage"`
 			EndCursor   string `json:"endCursor"`
 		} `json:"pageInfo"`
 		Nodes []Repository `json:"nodes"`
 	}
-	ReposOverview struct {
-		Repositories Repositories `json:"repositories"`
+	Repositories struct {
+		Repositories RepositoriesPage `json:"repositories"`
 	}
-	ReposContributedToOverview struct {
-		RepositoriesContributedTo Repositories `json:"repositoriesContributedTo"`
+	RepositoriesContributedTo struct {
+		RepositoriesContributedTo RepositoriesPage `json:"repositoriesContributedTo"`
 	}
 )
 

@@ -153,30 +153,17 @@ func (s *Loader) GetStats(ctx context.Context) (*Stats, error) {
 		}
 	}(stats)
 
-	var queries []func(ctx context.Context, after string) (*query.Repositories, error)
+	var queries []func(ctx context.Context, login, after string) (*query.RepositoriesPage, error)
 
-	queries = append(queries, func(ctx context.Context, after string) (*query.Repositories, error) {
-		data, err := query.Query[query.ReposOverview](ctx, s.queries, query.BuildReposOverviewQuery(s.username, after))
-		if err != nil {
-			return nil, err
-		}
-		return &data.Repositories, nil
-	})
-
+	queries = append(queries, s.queries.Repositories)
 	if !s.filter.ignoreContributedTo {
-		queries = append(queries, func(ctx context.Context, after string) (*query.Repositories, error) {
-			data, err := query.Query[query.ReposContributedToOverview](ctx, s.queries, query.BuildRepositoriesContributedToQuery(s.username, after))
-			if err != nil {
-				return nil, err
-			}
-			return &data.RepositoriesContributedTo, nil
-		})
+		queries = append(queries, s.queries.RepositoriesContributedTo)
 	}
 
 	for _, q := range queries {
 		after := ""
 		for {
-			repositories, err := q(ctx, after)
+			repositories, err := q(ctx, s.username, after)
 			if err != nil {
 				return nil, err
 			}
@@ -282,17 +269,12 @@ func (s *Loader) mergeRepoToStats(repo *query.Repository, stats *Stats) *RepoSta
 }
 
 func (s *Loader) totalContributions(ctx context.Context) (int, error) {
-	yearsData, err := query.Query[query.ContribYears](ctx, s.queries, query.BuildContribYearsQuery(s.username))
+	allContrib, err := s.queries.AllContribYears(ctx, s.username)
 	if err != nil {
 		return 0, err
 	}
-	allContrib, err := query.Query[query.AllContribYears](ctx, s.queries, query.BuildAllContribQuery(s.username, yearsData.ContributionsCollection.ContributionYears))
-	if err != nil {
-		return 0, err
-	}
-
 	total := 0
-	for _, year := range *allContrib {
+	for _, year := range allContrib {
 		total += year.ContributionCalendar.TotalContributions
 	}
 	return total, nil
@@ -301,7 +283,7 @@ func (s *Loader) totalContributions(ctx context.Context) (int, error) {
 func (s *Loader) linesChanged(ctx context.Context, repo string) ([2]int, error) {
 	username := strings.ToLower(s.username)
 	additions, deletions := 0, 0
-	con, err := query.Request[[]query.RepoContributor](ctx, s.queries, fmt.Sprintf("/repos/%s/stats/contributors", repo), nil)
+	con, err := s.queries.RepoContributors(ctx, repo)
 	if err != nil {
 		return [2]int{0, 0}, err
 	}
@@ -319,7 +301,7 @@ func (s *Loader) linesChanged(ctx context.Context, repo string) ([2]int, error) 
 
 func (s *Loader) views(ctx context.Context, repo string) (int, error) {
 	total := 0
-	traffic, err := query.Request[query.RepoTraffic](ctx, s.queries, fmt.Sprintf("/repos/%s/traffic/views", repo), nil)
+	traffic, err := s.queries.RepoTraffic(ctx, repo)
 	if err != nil {
 		return 0, err
 	}
