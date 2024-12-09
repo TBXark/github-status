@@ -312,23 +312,25 @@ func (s *Loader) mergeRepoToStats(repo *query.Repository, stats *Stats) *RepoSta
 }
 
 func (s *Loader) totalContributions(ctx context.Context) (*ContributionsStats, error) {
-	var stats ContributionsStats
 	con, err := s.queries.ContributionsCollection(ctx, s.username)
 	if err != nil {
 		return nil, err
 	}
-	stats.TotalCommitContributions = con.ContributionsCollection.TotalCommitContributions
-	stats.TotalIssueContributions = con.ContributionsCollection.TotalIssueContributions
-	stats.TotalPullRequestContributions = con.ContributionsCollection.TotalPullRequestContributions
-	stats.TotalPullRequestReviewContributions = con.ContributionsCollection.TotalPullRequestReviewContributions
+	stats := &ContributionsStats{
+		TotalContributions:                  0,
+		TotalCommitContributions:            con.ContributionsCollection.TotalCommitContributions,
+		TotalIssueContributions:             con.ContributionsCollection.TotalIssueContributions,
+		TotalPullRequestContributions:       con.ContributionsCollection.TotalPullRequestContributions,
+		TotalPullRequestReviewContributions: con.ContributionsCollection.TotalPullRequestReviewContributions,
+	}
 	allContrib, err := s.queries.AllContribYears(ctx, s.username, con.ContributionsCollection.ContributionYears)
 	if err != nil {
-		return &stats, err
+		return nil, err
 	}
 	for _, year := range allContrib {
 		stats.TotalContributions += year.ContributionCalendar.TotalContributions
 	}
-	return &stats, nil
+	return stats, nil
 }
 
 func (s *Loader) linesChanged(ctx context.Context, repo string) ([2]int, error) {
