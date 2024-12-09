@@ -105,7 +105,7 @@ func (q *Queries) requestRest(ctx context.Context, path string, params map[strin
 	return io.ReadAll(resp.Body)
 }
 
-func BuildReposOverviewQuery(after string) string {
+func BuildReposOverviewQuery(login, after string) string {
 	if after == "" {
 		after = "null"
 	} else {
@@ -113,9 +113,7 @@ func BuildReposOverviewQuery(after string) string {
 	}
 	return fmt.Sprintf(`
 query {
-  viewer {
-    login,
-    name,
+  user(login: "%s") {
     repositories(
         first: 100,
         orderBy: {
@@ -150,10 +148,10 @@ query {
       }
     }
   }
-}`, after)
+}`, login, after)
 }
 
-func BuildRepositoriesContributedToQuery(after string) string {
+func BuildRepositoriesContributedToQuery(login, after string) string {
 	if after == "" {
 		after = "null"
 	} else {
@@ -161,7 +159,7 @@ func BuildRepositoriesContributedToQuery(after string) string {
 	}
 	return fmt.Sprintf(`
 query {
-  viewer {
+  user(login: "%s") {
     repositoriesContributedTo(
         first: 100,
         includeUserRepositories: false,
@@ -202,21 +200,21 @@ query {
       }
     }
   }
-}`, after)
+}`, login, after)
 }
 
-func BuildContribYearsQuery() string {
-	return `
+func BuildContribYearsQuery(login string) string {
+	return fmt.Sprintf(`
 query {
-  viewer {
+  user(login: "%s") {
     contributionsCollection {
       contributionYears
     }
   }
-}`
+}`, login)
 }
 
-func BuildAllContribQuery(years []int) string {
+func BuildAllContribQuery(login string, years []int) string {
 	var byYears string
 	for _, year := range years {
 		byYears += fmt.Sprintf(`
@@ -231,10 +229,10 @@ func BuildAllContribQuery(years []int) string {
 	}
 	return fmt.Sprintf(`
 query {
-  viewer {
+  user(login: "%s") {
     %s
   }
-}`, byYears)
+}`, login, byYears)
 }
 
 func Query[T any](ctx context.Context, client *Queries, query string) (*T, error) {
@@ -242,12 +240,14 @@ func Query[T any](ctx context.Context, client *Queries, query string) (*T, error
 	if err != nil {
 		return nil, err
 	}
-	var result ViewerWrapper[T]
+	var result struct {
+		User T `json:"user"`
+	}
 	err = json.Unmarshal(data, &result)
 	if err != nil {
 		return nil, err
 	}
-	return &result.Viewer, nil
+	return &result.User, nil
 }
 
 func Request[T any](ctx context.Context, client *Queries, path string, params map[string]string) (*T, error) {
@@ -281,7 +281,6 @@ type (
 	graphQLRequest struct {
 		Query string `json:"query"`
 	}
-
 	graphQLResponse struct {
 		Data   json.RawMessage `json:"data,omitempty"`
 		Errors []struct {
@@ -310,7 +309,6 @@ type (
 			} `json:"edges"`
 		} `json:"languages"`
 	}
-
 	Repositories struct {
 		PageInfo struct {
 			HasNextPage bool   `json:"hasNextPage"`
@@ -319,8 +317,6 @@ type (
 		Nodes []Repository `json:"nodes"`
 	}
 	ReposOverview struct {
-		Login        string       `json:"login"`
-		Name         string       `json:"name"`
 		Repositories Repositories `json:"repositories"`
 	}
 	ReposContributedToOverview struct {
@@ -366,7 +362,3 @@ type (
 		} `json:"views"`
 	}
 )
-
-type ViewerWrapper[T any] struct {
-	Viewer T `json:"viewer"`
-}

@@ -156,7 +156,7 @@ func (s *Loader) GetStats(ctx context.Context) (*Stats, error) {
 	var queries []func(ctx context.Context, after string) (*query.Repositories, error)
 
 	queries = append(queries, func(ctx context.Context, after string) (*query.Repositories, error) {
-		data, err := query.Query[query.ReposOverview](ctx, s.queries, query.BuildReposOverviewQuery(after))
+		data, err := query.Query[query.ReposOverview](ctx, s.queries, query.BuildReposOverviewQuery(s.username, after))
 		if err != nil {
 			return nil, err
 		}
@@ -165,7 +165,7 @@ func (s *Loader) GetStats(ctx context.Context) (*Stats, error) {
 
 	if !s.filter.ignoreContributedTo {
 		queries = append(queries, func(ctx context.Context, after string) (*query.Repositories, error) {
-			data, err := query.Query[query.ReposContributedToOverview](ctx, s.queries, query.BuildRepositoriesContributedToQuery(after))
+			data, err := query.Query[query.ReposContributedToOverview](ctx, s.queries, query.BuildRepositoriesContributedToQuery(s.username, after))
 			if err != nil {
 				return nil, err
 			}
@@ -282,11 +282,11 @@ func (s *Loader) mergeRepoToStats(repo *query.Repository, stats *Stats) *RepoSta
 }
 
 func (s *Loader) totalContributions(ctx context.Context) (int, error) {
-	yearsData, err := query.Query[query.ContribYears](ctx, s.queries, query.BuildContribYearsQuery())
+	yearsData, err := query.Query[query.ContribYears](ctx, s.queries, query.BuildContribYearsQuery(s.username))
 	if err != nil {
 		return 0, err
 	}
-	allContrib, err := query.Query[query.AllContribYears](ctx, s.queries, query.BuildAllContribQuery(yearsData.ContributionsCollection.ContributionYears))
+	allContrib, err := query.Query[query.AllContribYears](ctx, s.queries, query.BuildAllContribQuery(s.username, yearsData.ContributionsCollection.ContributionYears))
 	if err != nil {
 		return 0, err
 	}
