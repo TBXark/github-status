@@ -105,24 +105,18 @@ func (q *Queries) requestRest(ctx context.Context, path string, params map[strin
 	return io.ReadAll(resp.Body)
 }
 
-func (q *Queries) Repositories(ctx context.Context, login, after string) (*RepositoriesPage, error) {
+func (q *Queries) formatAfterCursor(after string) string {
 	if after == "" {
-		after = "null"
-	} else {
-		after = fmt.Sprintf(`"%s"`, after)
+		return "null"
 	}
-	query := fmt.Sprintf(`
+	return fmt.Sprintf(`"%s"`, after)
+}
+
+func (q *Queries) repositoriesQuery(query, login string) string {
+	return fmt.Sprintf(`
 query {
   user(login: "%s") {
-    repositories(
-        first: 100,
-        orderBy: {
-            field: UPDATED_AT,
-            direction: DESC
-        },
-        isFork: false,
-        after: %s
-    ) {
+    repositories: %s {
       pageInfo {
         hasNextPage
         endCursor
@@ -148,7 +142,20 @@ query {
       }
     }
   }
-}`, login, after)
+}`, login, strings.TrimSpace(query))
+}
+
+func (q *Queries) Repositories(ctx context.Context, login, after string) (*RepositoriesPage, error) {
+	query := q.repositoriesQuery(fmt.Sprintf(`
+	repositories(
+        first: 100,
+        orderBy: {
+            field: UPDATED_AT,
+            direction: DESC
+        },
+        isFork: false,
+        after: %s
+    )`, q.formatAfterCursor(after)), login)
 	data, err := sendQuery[Repositories](ctx, q, query)
 	if err != nil {
 		return nil, err
@@ -157,15 +164,8 @@ query {
 }
 
 func (q *Queries) RepositoriesContributedTo(ctx context.Context, login, after string) (*RepositoriesPage, error) {
-	if after == "" {
-		after = "null"
-	} else {
-		after = fmt.Sprintf(`"%s"`, after)
-	}
-	query := fmt.Sprintf(`
-query {
-  user(login: "%s") {
-    repositoriesContributedTo(
+	query := q.repositoriesQuery(fmt.Sprintf(`
+	repositoriesContributedTo(
         first: 100,
         includeUserRepositories: false,
         orderBy: {
@@ -179,38 +179,12 @@ query {
             PULL_REQUEST_REVIEW
         ]
         after: %s
-    ) {
-      pageInfo {
-        hasNextPage
-        endCursor
-      }
-      nodes {
-        nameWithOwner
-        stargazers {
-          totalCount
-        }
-        forkCount
-        isFork
-        isArchived
-        isPrivate
-        languages(first: 10, orderBy: {field: SIZE, direction: DESC}) {
-          edges {
-            size
-            node {
-              name
-              color
-            }
-          }
-        }
-      }
-    }
-  }
-}`, login, after)
-	data, err := sendQuery[RepositoriesContributedTo](ctx, q, query)
+    )`, q.formatAfterCursor(after)), login)
+	data, err := sendQuery[Repositories](ctx, q, query)
 	if err != nil {
 		return nil, err
 	}
-	return &data.RepositoriesContributedTo, nil
+	return &data.Repositories, nil
 }
 
 func (q *Queries) ContributionsCollection(ctx context.Context, login string) (*ContributionsCollection, error) {
@@ -230,7 +204,6 @@ query {
 }
 
 func (q *Queries) AllContribYears(ctx context.Context, login string, years []int) (AllContribYears, error) {
-
 	var byYears string
 	for _, year := range years {
 		byYears += fmt.Sprintf(`
@@ -344,9 +317,6 @@ type (
 	}
 	Repositories struct {
 		Repositories RepositoriesPage `json:"repositories"`
-	}
-	RepositoriesContributedTo struct {
-		RepositoriesContributedTo RepositoriesPage `json:"repositoriesContributedTo"`
 	}
 )
 
