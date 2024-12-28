@@ -41,6 +41,7 @@ All configuration is done through environment variables. Here are all the availa
 | `IGNORE_LINES_CHANGED`          | bool     | Whether to ignore lines of code changed in statistics | `false`      |
 | `IGNORE_REPO_VIEWS`             | bool     | Whether to ignore repository view counts              | `false`      |
 | `WEBHOOK_URL`                   | string   | URL for webhook notifications                         | `""`         |
+| `ANIMATION`                     | bool     | Whether to enable animation in the SVG cards          | `false`      |
 
 > **Note:** `GITHUB_TOKEN` is limited requests on GitHub API, so it is recommended to use a personal access token `ACCESS_TOKEN` with the `repo` scope.
 
