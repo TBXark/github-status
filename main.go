@@ -42,7 +42,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to get stats: %v", err)
 	}
-	if e := saveStat(stat, *output); e != nil {
+	if e := saveStat(conf.Animation, stat, *output); e != nil {
 		log.Printf("Failed to save stat: %v", e)
 	}
 	if e := sendWebhook(conf, stat); e != nil {
@@ -54,13 +54,13 @@ func main() {
 	}
 }
 
-func saveStat(stat *stats.Stats, output string) error {
+func saveStat(animation bool, stat *stats.Stats, output string) error {
 	err := os.MkdirAll(output, 0755)
 	if err != nil {
 		return err
 	}
 
-	overview, err := render.OverviewSVG(stat)
+	overview, err := render.OverviewSVG(animation, stat)
 	if err != nil {
 		return err
 	}
@@ -69,7 +69,7 @@ func saveStat(stat *stats.Stats, output string) error {
 		return err
 	}
 
-	languages, err := render.LanguagesSVG(stat)
+	languages, err := render.LanguagesSVG(animation, stat)
 	if err != nil {
 		return err
 	}

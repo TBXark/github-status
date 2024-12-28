@@ -42,12 +42,14 @@ func loadIcon(name string) string {
 	return string(f)
 }
 
-func OverviewSVG(data *stats.Stats) (SVGData, error) {
+func OverviewSVG(animation bool, data *stats.Stats) (SVGData, error) {
 	var input struct {
-		Name  string
-		Items []OverviewItem
+		Name      string
+		Animation bool
+		Items     []OverviewItem
 	}
 	input.Name = data.Name
+	input.Animation = animation
 	input.Items = append(input.Items, OverviewItem{
 		Icon:  loadIcon("star"),
 		Name:  "Stars",
@@ -107,7 +109,11 @@ func OverviewSVG(data *stats.Stats) (SVGData, error) {
 	return SVGData(buf.String()), nil
 }
 
-func LanguagesSVG(data *stats.Stats) (SVGData, error) {
+func LanguagesSVG(animation bool, data *stats.Stats) (SVGData, error) {
+	var input struct {
+		Animation bool
+		Languages []*stats.LanguageStats
+	}
 	funcMap := template.FuncMap{
 		"AnimationDelay": func(i int) int {
 			return i * 150
@@ -120,11 +126,12 @@ func LanguagesSVG(data *stats.Stats) (SVGData, error) {
 	if err != nil {
 		return "", err
 	}
-	langList := slices.SortedFunc(maps.Values(data.Languages), func(s1 *stats.LanguageStats, s2 *stats.LanguageStats) int {
+	input.Animation = animation
+	input.Languages = slices.SortedFunc(maps.Values(data.Languages), func(s1 *stats.LanguageStats, s2 *stats.LanguageStats) int {
 		return s2.Size - s1.Size
 	})
 	var buf strings.Builder
-	err = tmpl.Execute(&buf, langList)
+	err = tmpl.Execute(&buf, input)
 	if err != nil {
 		return "", err
 	}

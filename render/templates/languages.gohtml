@@ -44,6 +44,10 @@
             margin-right: 2ch;
             align-items: center;
             flex-wrap: nowrap;
+        }
+
+        {{ if .Animation }}
+        li {
             transform: translateX(-500%);
             animation-duration: 1s;
             animation-name: slideIn;
@@ -56,6 +60,7 @@
                 transform: translateX(0);
             }
         }
+        {{ end }}
 
         div.ellipsis {
             height: 100%;
@@ -97,13 +102,13 @@
                     <h2>Most Used Languages</h2>
                     <div>
                         <span class="progress">
-                            {{range .}}
+                            {{range .Languages}}
                                 <span style="background-color:{{.Color}}; width:{{Percent .Proportion}};" class="progress-item"/>
                             {{end}}
                         </span>
                     </div>
                     <ul>
-                        {{range $i, $v:= .}}
+                        {{range $i, $v:= .Languages}}
                             <li style="animation-delay: {{AnimationDelay $i }}ms;">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="octicon" style="fill:{{.Color}};"
                                      viewBox="0 0 16 16" version="1.1" width="16" height="16">

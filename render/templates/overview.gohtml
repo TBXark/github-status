@@ -45,6 +45,7 @@
             color: rgb(145, 145, 145);
         }
 
+        {{ if .Animation }}
         tr {
             transform: translateY(500%);
             animation-duration: 1s;
@@ -52,6 +53,13 @@
             animation-function: ease-in-out;
             animation-fill-mode: forwards;
         }
+        
+        @keyframes slideIn {
+            to {
+                transform: translateY(0);
+            }
+        }
+        {{ end }}
 
         .label {
             font-weight: 600;
@@ -62,12 +70,6 @@
             fill: rgb(139, 139, 139);
             margin-right: 1ch;
             vertical-align: top;
-        }
-
-        @keyframes slideIn {
-            to {
-                transform: translateY(0);
-            }
         }
     </style>
     <g>

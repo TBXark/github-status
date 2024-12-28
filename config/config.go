@@ -21,6 +21,7 @@ type Config struct {
 	IgnoreLinesChanged bool `json:"ignore_lines_changed"`
 	IgnoreRepoViews    bool `json:"ignore_repo_views"`
 
+	Animation  bool   `json:"animation"`
 	WebhookURL string `json:"webhook_url"`
 }
 
@@ -65,6 +66,7 @@ func NewConfig(tokenValidate func(token string) bool) *Config {
 		IgnoreLinesChanged: boolFromEnv("IGNORE_LINES_CHANGED"),
 		IgnoreRepoViews:    boolFromEnv("IGNORE_REPO_VIEWS"),
 
+		Animation:  boolFromEnv("ANIMATION"),
 		WebhookURL: os.Getenv("WEBHOOK_URL"),
 	}
 
