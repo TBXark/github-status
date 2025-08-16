@@ -5,16 +5,25 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"time"
+
 	"github.com/TBXark/github-status/config"
 	"github.com/TBXark/github-status/query"
 	"github.com/TBXark/github-status/render"
 	"github.com/TBXark/github-status/stats"
-	"log"
-	"net/http"
-	"os"
 )
 
 func main() {
+	if err := run(); err != nil {
+		log.Fatalf("Error: %v", err)
+	}
+}
+
+func run() error {
 	output := flag.String("output", "output", "The output directory")
 	debug := flag.Bool("debug", false, "Enable debug mode")
 	flag.Parse()
@@ -23,7 +32,7 @@ func main() {
 		return query.NewQueries(token).IsValid()
 	})
 	if conf == nil {
-		log.Fatalf("Invalid config")
+		return fmt.Errorf("invalid config")
 	}
 	loader := stats.NewStats(
 		conf.UserName,
@@ -40,7 +49,7 @@ func main() {
 	)
 	stat, err := loader.GetStats(context.Background())
 	if err != nil {
-		log.Fatalf("Failed to get stats: %v", err)
+		return fmt.Errorf("failed to get stats: %w", err)
 	}
 	if e := saveStat(conf.Animation, stat, *output); e != nil {
 		log.Printf("Failed to save stat: %v", e)
@@ -50,12 +59,13 @@ func main() {
 	}
 	if *debug {
 		data, _ := json.MarshalIndent(stat, "", "  ")
-		_ = os.WriteFile(*output+"/data.json", data, 0644)
+		_ = os.WriteFile(*output+"/data.json", data, 0o644)
 	}
+	return nil
 }
 
 func saveStat(animation bool, stat *stats.Stats, output string) error {
-	err := os.MkdirAll(output, 0755)
+	err := os.MkdirAll(output, 0o755)
 	if err != nil {
 		return err
 	}
@@ -93,10 +103,10 @@ func sendWebhook(conf *config.Config, obj any) error {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	resp, err := http.DefaultClient.Do(req)
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-	return nil
+	return resp.Body.Close()
 }

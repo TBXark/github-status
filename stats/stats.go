@@ -2,9 +2,10 @@ package stats
 
 import (
 	"context"
-	"github.com/TBXark/github-status/query"
 	"strings"
 	"sync"
+
+	"github.com/TBXark/github-status/query"
 )
 
 type (
@@ -154,7 +155,6 @@ func IncludeOwner(owners ...string) Option {
 }
 
 func (s *Loader) GetStats(ctx context.Context) (*Stats, error) {
-
 	stats := &Stats{
 		Name:      s.username,
 		Languages: make(map[string]*LanguageStats),
@@ -239,9 +239,11 @@ func (s *Loader) GetStats(ctx context.Context) (*Stats, error) {
 	for _, lang := range stats.Languages {
 		totalSize += lang.Size
 	}
-	for n, lang := range stats.Languages {
-		lang.Proportion = 100 * float64(lang.Size) / float64(totalSize)
-		stats.Languages[n] = lang
+	if totalSize > 0 {
+		for n, lang := range stats.Languages {
+			lang.Proportion = 100 * float64(lang.Size) / float64(totalSize)
+			stats.Languages[n] = lang
+		}
 	}
 
 	if totalContributions, e := s.totalContributions(ctx); e == nil {

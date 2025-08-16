@@ -2,15 +2,15 @@ package render
 
 import (
 	"embed"
-	_ "embed"
 	"fmt"
-	"github.com/TBXark/github-status/stats"
 	"maps"
 	"os"
 	"slices"
 	"strings"
 	"text/template"
 	"time"
+
+	"github.com/TBXark/github-status/stats"
 )
 
 //go:embed templates/overview.gohtml
@@ -25,7 +25,7 @@ var iconsFS embed.FS
 type SVGData string
 
 func (s SVGData) WriteToPath(path string) error {
-	return os.WriteFile(path, []byte(s), 0644)
+	return os.WriteFile(path, []byte(s), 0o644)
 }
 
 type OverviewItem struct {

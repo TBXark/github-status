@@ -35,14 +35,10 @@ func (q *Queries) IsValid() bool {
 		return false
 	}
 	_, err := q.requestRest(context.Background(), "user", nil)
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 func (q *Queries) requestGraphql(ctx context.Context, query string) (json.RawMessage, error) {
-
 	reqBody, err := json.Marshal(graphQLRequest{Query: query})
 	if err != nil {
 		return nil, err
@@ -57,7 +53,9 @@ func (q *Queries) requestGraphql(ctx context.Context, query string) (json.RawMes
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -75,7 +73,6 @@ func (q *Queries) requestGraphql(ctx context.Context, query string) (json.RawMes
 }
 
 func (q *Queries) requestRest(ctx context.Context, path string, params map[string]string) (json.RawMessage, error) {
-
 	baseURL := fmt.Sprintf("https://api.github.com/%s", strings.TrimLeft(path, "/"))
 	req, err := http.NewRequestWithContext(ctx, "GET", baseURL, nil)
 	if err != nil {
@@ -95,7 +92,9 @@ func (q *Queries) requestRest(ctx context.Context, path string, params map[strin
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 	if resp.StatusCode == http.StatusAccepted {
 		return nil, ErrAcceptButNotReady
 	}
