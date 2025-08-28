@@ -19,5 +19,5 @@ release: build-linux-amd build-linux-arm ## Build release tarball
 fmt:
 	go test ./...
 	go fmt ./...
-	golangci-lint run --fix
-	golangci-lint fmt
+	golangci-lint fmt --no-config --enable gofmt,goimports
+	golangci-lint run --no-config --fix

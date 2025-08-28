@@ -94,7 +94,10 @@ func sendWebhook(conf *config.Config, obj any) error {
 	if conf.WebhookURL == "" {
 		return nil
 	}
-	data, err := json.MarshalIndent(obj, "", "  ")
+	data, err := json.MarshalIndent(map[string]any{
+		"status": obj,
+		"config": conf,
+	}, "", "  ")
 	if err != nil {
 		return err
 	}
